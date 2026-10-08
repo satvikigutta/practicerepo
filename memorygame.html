@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MindMatch 3D - Ultimate Memory Challenge</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f5ff',
+                            100: '#e0ebff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        }
+                    },
+                    animation: {
+                        'pulse-glow': 'pulseGlow 2s infinite',
+                        'bounce-short': 'bounceShort 0.5s ease infinite alternate',
+                        'float': 'float 3s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        pulseGlow: {
+                            '0%, 100%': { opacity: 0.8, filter: 'drop-shadow(0 0 15px rgba(99, 102, 241, 0.6))' },
+                            '50%': { opacity: 1, filter: 'drop-shadow(0 0 25px rgba(168, 85, 247, 0.8))' },
+                        },
+                        bounceShort: {
+                            'from': { transform: 'translateY(0)' },
+                            'to': { transform: 'translateY(-6px)' }
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-8px)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* CSS 3D Perspective & Card Flip styles */
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+        .transform-style-3d {
+            transform-style: preserve-3d;
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .backface-hidden {
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+        .rotate-y-180 {
+            transform: rotateY(180deg);
+        }
+        .card-inner.is-flipped {
+            transform: rotateY(180deg);
+        }
+        .card-inner.is-matched {
+            transform: rotateY(180deg);
+        }
+
+        /* Glassmorphism styling */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glass-card-front {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
+            border: 2px solid rgba(99, 102, 241, 0.3);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        .glass-card-back {
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.9), rgba(147, 51, 234, 0.9));
+            border: 2px solid rgba(192, 132, 252, 0.6);
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+        }
+        
+        /* Matched Card Highlight Glow */
+        .card-inner.is-matched .glass-card-back {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.9), rgba(5, 150, 105, 0.9));
+            border-color: rgba(52, 211, 153, 0.8);
+            box-shadow: 0 0 25px rgba(16, 185, 129, 0.6);
+            animation: matchPulse 0.6s ease-out;
+        }
+
+        @keyframes matchPulse {
+            0% { transform: rotateY(180deg) scale(1); }
+            50% { transform: rotateY(180deg) scale(1.08); }
+            100% { transform: rotateY(180deg) scale(1); }
+        }
+
+        /* Hint Pulse Highlight */
+        .card-inner.is-hinted {
+            animation: hintHighlight 1.2s ease-in-out infinite alternate;
+        }
+        @keyframes hintHighlight {
+            0% { box-shadow: 0 0 5px rgba(251, 191, 36, 0.5); }
+            100% { box-shadow: 0 0 25px rgba(251, 191, 36, 1); transform: translateY(-4px); }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.5);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.8);
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col justify-between select-none overflow-x-hidden antialiased bg-slate-950 text-slate-100 font-sans">
+
+    <!-- TOP NAVIGATION BAR -->
+    <header class="w-full glass-panel sticky top-0 z-30 px-4 py-3 border-b border-slate-800">
+        <div class="max-w-6xl mx-auto flex items-center justify-between gap-2">
+            <!-- Brand Logo -->
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/30 text-white font-extrabold text-xl">
+                    <i class="fa-solid font-bold fa-brain"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-lg md:text-xl tracking-tight bg-gradient-to-r from-indigo-300 via-purple-200 to-pink-300 bg-clip-text text-transparent">
+                        MindMatch <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-semibold uppercase tracking-wider">3D</span>
+                    </h1>
+                    <p class="text-[11px] text-slate-400 hidden sm:block">Train your memory with interactive 3D cards</p>
+                </div>
+            </div>
+
+            <!-- Header Quick Action Controls -->
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <!-- Sound Toggle -->
+                <button id="btn-sound" title="Toggle Sound" class="w-10 h-10 rounded-xl glass-panel hover:bg-slate-800 text-slate-300 hover:text-indigo-400 transition flex items-center justify-center border border-slate-700/60 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <i id="icon-sound" class="fa-solid fa-volume-high text-base"></i>
+                </button>
+
+                <!-- High Scores / Stats -->
+                <button id="btn-stats" title="Leaderboard & Stats" class="w-10 h-10 rounded-xl glass-panel hover:bg-slate-800 text-slate-300 hover:text-indigo-400 transition flex items-center justify-center border border-slate-700/60 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <i class="fa-solid fa-trophy text-base"></i>
+                </button>
+
+                <!-- How to Play Info -->
+                <button id="btn-help" title="How to Play" class="w-10 h-10 rounded-xl glass-panel hover:bg-slate-800 text-slate-300 hover:text-indigo-400 transition flex items-center justify-center border border-slate-700/60 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <i class="fa-solid fa-circle-question text-base"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="flex-grow flex flex-col justify-center items-center px-3 py-4 max-w-6xl w-full mx-auto relative z-10">
+        
+        <!-- SETTINGS & DASHBOARD BAR -->
+        <div class="w-full glass-panel rounded-2xl p-4 mb-4 shadow-2xl border border-slate-800/80">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                
+                <!-- Game Mode Controls (Theme & Difficulty Selectors) -->
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full lg:w-auto justify-between sm:justify-start">
+                    
+                    <!-- Theme Selector -->
+                    <div class="flex items-center space-x-2 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-800 text-xs sm:text-sm">
+                        <i class="fa-solid fa-palette text-purple-400"></i>
+                        <span class="text-slate-400 hidden sm:inline">Theme:</span>
+                        <select id="select-theme" class="bg-transparent font-medium text-slate-200 focus:outline-none cursor-pointer pr-1">
+                            <option value="animals" class="bg-slate-900 text-slate-200">🐶 Animals</option>
+                            <option value="food" class="bg-slate-900 text-slate-200">🍕 Yummy Food</option>
+                            <option value="space" class="bg-slate-900 text-slate-200">🚀 Space & Sci-Fi</option>
+                            <option value="fantasy" class="bg-slate-900 text-slate-200">🧙 Fantasy & Magic</option>
+                        </select>
+                    </div>
+
+                    <!-- Difficulty Selector -->
+                    <div class="flex items-center space-x-2 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-800 text-xs sm:text-sm">
+                        <i class="fa-solid fa-gauge-high text-indigo-400"></i>
+                        <span class="text-slate-400 hidden sm:inline">Difficulty:</span>
+                        <select id="select-difficulty" class="bg-transparent font-medium text-slate-200 focus:outline-none cursor-pointer pr-1">
+                            <option value="easy" class="bg-slate-900 text-slate-200">Easy (4×3)</option>
+                            <option value="medium" selected class="bg-slate-900 text-slate-200">Medium (4×4)</option>
+                            <option value="hard" class="bg-slate-900 text-slate-200">Hard (6×4)</option>
+                        </select>
+                    </div>
+
+                    <!-- Reset / New Game Button -->
+                    <button id="btn-restart" class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold text-xs sm:text-sm px-4 py-2 rounded-xl transition shadow-lg shadow-indigo-600/30 flex items-center space-x-2 active:scale-95">
+                        <i class="fa-solid fa-rotate-right"></i>
+                        <span>New Game</span>
+                    </button>
+                </div>
+
+                <!-- Live Gameplay Stats Display -->
+                <div class="flex items-center justify-between w-full lg:w-auto gap-3 sm:gap-6 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/80">
+                    
+                    <!-- Timer -->
+                    <div class="flex items-center space-x-2 px-2">
+                        <i class="fa-regular fa-clock text-indigo-400 text-base"></i>
+                        <div>
+                            <div class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Time</div>
+                            <div id="stat-time" class="font-mono font-bold text-sm sm:text-base text-slate-100">00:00</div>
+                        </div>
+                    </div>
+
+                    <!-- Divider -->
+                    <div class="h-7 w-[1px] bg-slate-800"></div>
+
+                    <!-- Move Counter -->
+                    <div class="flex items-center space-x-2 px-2">
+                        <i class="fa-solid fa-shoe-prints text-emerald-400 text-base"></i>
+                        <div>
+                            <div class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Moves</div>
+                            <div id="stat-moves" class="font-bold text-sm sm:text-base text-slate-100">0</div>
+                        </div>
+                    </div>
+
+                    <!-- Divider -->
+                    <div class="h-7 w-[1px] bg-slate-800"></div>
+
+                    <!-- Efficiency / Accuracy -->
+                    <div class="flex items-center space-x-2 px-2">
+                        <i class="fa-solid fa-bullseye text-pink-400 text-base"></i>
+                        <div>
+                            <div class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Accuracy</div>
+                            <div id="stat-accuracy" class="font-bold text-sm sm:text-base text-slate-100">100%</div>
+                        </div>
+                    </div>
+
+                    <!-- Divider -->
+                    <div class="h-7 w-[1px] bg-slate-800"></div>
+
+                    <!-- Star Rating -->
+                    <div class="flex items-center space-x-1 px-1">
+                        <div id="star-1" class="text-amber-400 transition-all duration-300"><i class="fa-solid fa-star text-sm"></i></div>
+                        <div id="star-2" class="text-amber-400 transition-all duration-300"><i class="fa-solid fa-star text-sm"></i></div>
+                        <div id="star-3" class="text-amber-400 transition-all duration-300"><i class="fa-solid fa-star text-sm"></i></div>
+                    </div>
+
+                    <!-- Hint Button -->
+                    <button id="btn-hint" class="ml-auto bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-semibold px-3 py-1.5 rounded-lg transition flex items-center space-x-1.5 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">
+                        <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i>
+                        <span class="hidden sm:inline">Hint</span>
+                        <span id="hint-count-badge" class="bg-amber-500 text-slate-950 font-bold text-[10px] px-1.5 py-0.2 rounded-full">3</span>
+                    </button>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- CARD GRID BOARD CONTAINER -->
+        <div class="w-full relative min-h-[380px] sm:min-h-[460px] flex items-center justify-center">
+            
+            <!-- Dynamic Grid for Memory Cards -->
+            <div id="card-grid" class="w-full grid gap-2.5 sm:gap-4 justify-center items-center transition-all duration-300">
+                <!-- Memory Cards rendered dynamically via JavaScript -->
+            </div>
+
+            <!-- Pause / Countdown Overlay -->
+            <div id="game-overlay" class="absolute inset-0 rounded-2xl glass-panel hidden flex-col items-center justify-center z-20 backdrop-blur-md transition-all">
+                <div id="overlay-content" class="text-center p-6 max-w-sm">
+                    <div id="overlay-icon" class="text-5xl text-indigo-400 mb-3 animate-bounce">
+                        <i class="fa-solid fa-pause"></i>
+                    </div>
+                    <h2 id="overlay-title" class="text-2xl font-bold mb-2 text-slate-100">Game Paused</h2>
+                    <p id="overlay-desc" class="text-sm text-slate-300 mb-5">Take a breath and continue whenever you're ready!</p>
+                    <button id="btn-resume" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-indigo-600/30 transition">
+                        Resume Game
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- FOOTER STATUS BAR -->
+    <footer class="w-full text-center py-3 text-xs text-slate-500 border-t border-slate-800/60 glass-panel">
+        <p>MindMatch 3D &bull; Flip, remember, and master your visual memory</p>
+    </footer>
+
+    <!-- VICTORY MODAL DIALOG -->
+    <div id="modal-victory" class="fixed inset-0 bg-slate-950/80 backdrop-blur-lg z-50 hidden flex items-center justify-center p-4 transition-opacity duration-300">
+        <!-- Confetti Canvas -->
+        <canvas id="canvas-confetti" class="absolute inset-0 pointer-events-none z-10 w-full h-full"></canvas>
+
+        <div class="glass-panel max-w-md w-full rounded-3xl p-6 sm:p-8 text-center relative z-20 border border-indigo-500/40 shadow-2xl transform transition-transform duration-300 scale-95 opacity-0" id="victory-modal-card">
+            
+            <!-- Trophy Animation Header -->
+            <div class="relative w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+                <div class="absolute inset-0 rounded-full bg-amber-500/20 animate-ping opacity-75"></div>
+                <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center shadow-lg shadow-amber-500/40 text-slate-950 text-4xl font-black">
+                    <i class="fa-solid fa-trophy"></i>
+                </div>
+            </div>
+
+            <!-- Victory Titles -->
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-100 mb-1">Stage Cleared!</h2>
+            <p id="victory-subtitle" class="text-sm text-indigo-300 mb-4">You have exceptional memory skills!</p>
+
+            <!-- Star Rating Display -->
+            <div id="victory-stars" class="flex justify-center items-center space-x-2 text-2xl mb-6">
+                <i class="fa-solid fa-star text-amber-400 animate-bounce" style="animation-delay: 0.1s;"></i>
+                <i class="fa-solid fa-star text-amber-400 animate-bounce" style="animation-delay: 0.25s;"></i>
+                <i class="fa-solid fa-star text-amber-400 animate-bounce" style="animation-delay: 0.4s;"></i>
+            </div>
+
+            <!-- New High Score Badge -->
+            <div id="badge-highscore" class="hidden mb-4 inline-flex items-center space-x-2 bg-gradient-to-r from-amber-500/20 via-yellow-500/20 to-amber-500/20 border border-amber-500/50 text-amber-300 text-xs font-bold px-3 py-1 rounded-full shadow-inner">
+                <i class="fa-solid fa-crown text-amber-400"></i>
+                <span>NEW BEST RECORD!</span>
+            </div>
+
+            <!-- Performance Breakdown -->
+            <div class="grid grid-cols-3 gap-2 bg-slate-900/80 p-3 rounded-2xl border border-slate-800 mb-6 text-left">
+                <div class="p-2">
+                    <div class="text-[10px] text-slate-400 uppercase font-semibold">Time</div>
+                    <div id="vic-time" class="text-base font-bold text-slate-100 font-mono">00:42</div>
+                </div>
+                <div class="p-2 border-l border-slate-800">
+                    <div class="text-[10px] text-slate-400 uppercase font-semibold">Moves</div>
+                    <div id="vic-moves" class="text-base font-bold text-slate-100">14</div>
+                </div>
+                <div class="p-2 border-l border-slate-800">
+                    <div class="text-[10px] text-slate-400 uppercase font-semibold">Accuracy</div>
+                    <div id="vic-accuracy" class="text-base font-bold text-emerald-400">88%</div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex flex-col sm:flex-row items-center gap-3">
+                <button id="btn-vic-replay" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-indigo-600/30 active:scale-95">
+                    Play Again
+                </button>
+                <button id="btn-vic-close" class="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-5 py-3 rounded-xl border border-slate-700 transition">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- HIGH SCORES / STATS MODAL -->
+    <div id="modal-stats" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-panel max-w-lg w-full rounded-3xl p-6 relative border border-slate-800 shadow-2xl">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-trophy text-amber-400 text-xl"></i>
+                    <h3 class="text-lg font-bold text-slate-100">Personal Best Records</h3>
+                </div>
+                <button id="btn-close-stats" class="text-slate-400 hover:text-slate-100 w-8 h-8 rounded-lg flex items-center justify-center bg-slate-800/60">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Difficulty Tabs -->
+            <div class="grid grid-cols-3 gap-2 bg-slate-900/80 p-1 rounded-xl mb-4 text-xs font-semibold">
+                <button id="tab-easy" class="py-2 rounded-lg bg-indigo-600 text-white transition">Easy</button>
+                <button id="tab-medium" class="py-2 rounded-lg text-slate-400 hover:text-slate-200 transition">Medium</button>
+                <button id="tab-hard" class="py-2 rounded-lg text-slate-400 hover:text-slate-200 transition">Hard</button>
+            </div>
+
+            <!-- Stats Details Card -->
+            <div class="bg-slate-900/60 rounded-2xl p-4 border border-slate-800 space-y-3 mb-6">
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-slate-400"><i class="fa-regular fa-clock text-indigo-400 mr-2"></i>Best Time:</span>
+                    <span id="best-time-val" class="font-bold font-mono text-slate-100">--:--</span>
+                </div>
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-slate-400"><i class="fa-solid fa-shoe-prints text-emerald-400 mr-2"></i>Fewest Moves:</span>
+                    <span id="best-moves-val" class="font-bold text-slate-100">--</span>
+                </div>
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-slate-400"><i class="fa-solid fa-gamepad text-purple-400 mr-2"></i>Games Completed:</span>
+                    <span id="best-games-val" class="font-bold text-slate-100">0</span>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center">
+                <button id="btn-clear-stats" class="text-xs text-rose-400 hover:text-rose-300 font-medium transition">
+                    <i class="fa-solid fa-trash-can mr-1"></i> Reset Statistics
+                </button>
+                <button id="btn-done-stats" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs px-5 py-2 rounded-xl">
+                    Done
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- HOW TO PLAY MODAL -->
+    <div id="modal-help" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-panel max-w-md w-full rounded-3xl p-6 relative border border-slate-800 shadow-2xl">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-circle-info text-indigo-400 text-xl"></i>
+                    <h3 class="text-lg font-bold text-slate-100">How to Play</h3>
+                </div>
+                <button id="btn-close-help" class="text-slate-400 hover:text-slate-100 w-8 h-8 rounded-lg flex items-center justify-center bg-slate-800/60">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4 text-xs sm:text-sm text-slate-300 leading-relaxed mb-6">
+                <div class="flex items-start space-x-3">
+                    <div class="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 font-bold flex items-center justify-center shrink-0 mt-0.5">1</div>
+                    <p>Click or tap cards to reveal their hidden symbols in 3D animation.</p>
+                </div>
+                <div class="flex items-start space-x-3">
+                    <div class="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 font-bold flex items-center justify-center shrink-0 mt-0.5">2</div>
+                    <p>Match two identical cards to lock them in place and clear the pair.</p>
+                </div>
+                <div class="flex items-start space-x-3">
+                    <div class="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 font-bold flex items-center justify-center shrink-0 mt-0.5">3</div>
+                    <p>Complete the board in the fewest moves & fastest time to earn 3 full stars and set record high scores!</p>
+                </div>
+                <div class="flex items-start space-x-3">
+                    <div class="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 font-bold flex items-center justify-center shrink-0 mt-0.5"><i class="fa-solid fa-wand-magic-sparkles text-xs"></i></div>
+                    <p>Use the <strong>Hint</strong> button if you get stuck to highlight an active pair briefly.</p>
+                </div>
+            </div>
+
+            <button id="btn-done-help" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 rounded-xl transition">
+                Got It!
+            </button>
+        </div>
+    </div>
+
+
+    <script>
+        /* MAIN JAVASCRIPT GAME LOGIC */
+
+        // -------------------------------------------------------------
+        // 1. SOUND SYNTHESIZER (WEB AUDIO API - NO EXTERNAL ASSETS)
+        // -------------------------------------------------------------
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContext) {
+                        this.ctx = new AudioContext();
+                    }
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playFlip() {
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(120, this.ctx.currentTime + 0.08);
+
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.08);
+            }
+
+            playMatch() {
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.06);
+
+                    gain.gain.setValueAtTime(0.12, now + idx * 0.06);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.25);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start(now + idx * 0.06);
+                    osc.stop(now + idx * 0.06 + 0.25);
+                });
+            }
+
+            playMismatch() {
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.linearRampToValueAtTime(110, now + 0.2);
+
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.2);
+            }
+
+            playHint() {
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const freqs = [880, 1174.66, 1396.91, 1760];
+                freqs.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.05);
+
+                    gain.gain.setValueAtTime(0.08, now + idx * 0.05);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.05 + 0.2);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start(now + idx * 0.05);
+                    osc.stop(now + idx * 0.05 + 0.2);
+                });
+            }
+
+            playVictory() {
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const chordProgression = [
+                    { notes: [523.25, 659.25, 783.99], time: 0 },       // C major
+                    { notes: [587.33, 698.46, 880.00], time: 0.18 },    // D minor
+                    { notes: [659.25, 783.99, 987.77], time: 0.36 },    // E minor
+                    { notes: [698.46, 880.00, 1046.50, 1318.51], time: 0.54 } // F major add9
+                ];
+
+                chordProgression.forEach(step => {
+                    step.notes.forEach(freq => {
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(freq, now + step.time);
+
+                        gain.gain.setValueAtTime(0.12, now + step.time);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + step.time + 0.5);
+
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+
+                        osc.start(now + step.time);
+                        osc.stop(now + step.time + 0.5);
+                    });
+                });
+            }
+        }
+
+        const audioFX = new SoundEngine();
+
+        // -------------------------------------------------------------
+        // 2. THEMES & SYMBOLS DATA
+        // -------------------------------------------------------------
+        const CARD_THEMES = {
+            animals: ['🐶', '🐱', '🐰', '🦊', '🐼', '🐯', '🦁', '🐨', '🐸', '🐵', '🦄', '🐙', '🦉', '🐬'],
+            food: ['🍕', '🍔', '🍟', '🍦', '🍩', '🍣', '🌮', '🥑', '🥞', '🍜', '🍰', '🥨', '🍓', '🍉'],
+            space: ['🚀', '🪐', '👨‍🚀', '🛸', '👽', '👾', '🌌', '☄️', '🛰️', '🌟', '🤖', '🔭', '🎆', '🌙'],
+            fantasy: ['🧙‍♂️', '⚔️', '🛡️', '🔮', '🐉', '👑', '🏰', '💎', '📜', '🧪', '🗝️', '🦅', '🔥', '🧝‍♀️']
+        };
+
+        const DIFFICULTY_CONFIG = {
+            easy: { rows: 3, cols: 4, pairs: 6, gridCss: 'grid-cols-4 max-w-md' },
+            medium: { rows: 4, cols: 4, pairs: 8, gridCss: 'grid-cols-4 max-w-lg' },
+            hard: { rows: 4, cols: 6, pairs: 12, gridCss: 'grid-cols-4 sm:grid-cols-6 max-w-3xl' }
+        };
+
+        // -------------------------------------------------------------
+        // 3. GAME STATE MANAGEMENT
+        // -------------------------------------------------------------
+        let currentTheme = 'animals';
+        let currentDifficulty = 'medium';
+        let cards = [];
+        let flippedCards = [];
+        let matchedPairs = 0;
+        let moves = 0;
+        let timerSeconds = 0;
+        let timerInterval = null;
+        let isTimerRunning = false;
+        let isBoardLocked = false;
+        let hintsRemaining = 3;
+        let currentStatsTab = 'medium';
+
+        // DOM Element References
+        const cardGrid = document.getElementById('card-grid');
+        const selectTheme = document.getElementById('select-theme');
+        const selectDifficulty = document.getElementById('select-difficulty');
+        const btnRestart = document.getElementById('btn-restart');
+        const btnSound = document.getElementById('btn-sound');
+        const iconSound = document.getElementById('icon-sound');
+        const btnStats = document.getElementById('btn-stats');
+        const btnHelp = document.getElementById('btn-help');
+        const btnHint = document.getElementById('btn-hint');
+        const hintBadge = document.getElementById('hint-count-badge');
+
+        const statTime = document.getElementById('stat-time');
+        const statMoves = document.getElementById('stat-moves');
+        const statAccuracy = document.getElementById('stat-accuracy');
+
+        const star1 = document.getElementById('star-1');
+        const star2 = document.getElementById('star-2');
+        const star3 = document.getElementById('star-3');
+
+        const gameOverlay = document.getElementById('game-overlay');
+
+        // Victory Modal
+        const modalVictory = document.getElementById('modal-victory');
+        const victoryModalCard = document.getElementById('victory-modal-card');
+        const vicTime = document.getElementById('vic-time');
+        const vicMoves = document.getElementById('vic-moves');
+        const vicAccuracy = document.getElementById('vic-accuracy');
+        const badgeHighscore = document.getElementById('badge-highscore');
+        const btnVicReplay = document.getElementById('btn-vic-replay');
+        const btnVicClose = document.getElementById('btn-vic-close');
+
+        // Stats Modal
+        const modalStats = document.getElementById('modal-stats');
+        const btnCloseStats = document.getElementById('btn-close-stats');
+        const btnDoneStats = document.getElementById('btn-done-stats');
+        const btnClearStats = document.getElementById('btn-clear-stats');
+        const bestTimeVal = document.getElementById('best-time-val');
+        const bestMovesVal = document.getElementById('best-moves-val');
+        const bestGamesVal = document.getElementById('best-games-val');
+
+        // Help Modal
+        const modalHelp = document.getElementById('modal-help');
+        const btnCloseHelp = document.getElementById('btn-close-help');
+        const btnDoneHelp = document.getElementById('btn-done-help');
+
+        // -------------------------------------------------------------
+        // 4. CORE GAME ENGINE & BOARD INITIALIZATION
+        // -------------------------------------------------------------
+        function initGame() {
+            // Stop existing timer
+            stopTimer();
+            timerSeconds = 0;
+            statTime.textContent = '00:00';
+
+            moves = 0;
+            matchedPairs = 0;
+            flippedCards = [];
+            isBoardLocked = false;
+            hintsRemaining = 3;
+            updateHintBadge();
+
+            updateStatsDisplay();
+            updateStarsDisplay(3);
+
+            // Configure Grid CSS based on difficulty
+            const config = DIFFICULTY_CONFIG[currentDifficulty];
+            cardGrid.className = `w-full grid gap-2.5 sm:gap-4 justify-center items-center transition-all duration-300 ${config.gridCss}`;
+
+            // Generate Card Pairs
+            const themeSymbols = CARD_THEMES[currentTheme];
+            const selectedSymbols = shuffleArray([...themeSymbols]).slice(0, config.pairs);
+            const deck = shuffleArray([...selectedSymbols, ...selectedSymbols]);
+
+            cards = deck.map((symbol, idx) => ({
+                id: idx,
+                symbol: symbol,
+                isFlipped: false,
+                isMatched: false
+            }));
+
+            renderBoard();
+        }
+
+        function shuffleArray(arr) {
+            const array = [...arr];
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function renderBoard() {
+            cardGrid.innerHTML = '';
+
+            cards.forEach(card => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'perspective-1000 w-full aspect-square cursor-pointer min-w-[60px] sm:min-w-[75px]';
+                cardEl.dataset.id = card.id;
+
+                cardEl.innerHTML = `
+                    <div class="card-inner relative w-full h-full transition-transform duration-500 transform-style-3d rounded-2xl">
+                        <!-- Front Face (Closed) -->
+                        <div class="card-front absolute inset-0 backface-hidden rounded-2xl flex items-center justify-center glass-card-front hover:border-indigo-400 transition-colors">
+                            <i class="fa-solid fa-brain text-slate-600 text-lg sm:text-2xl"></i>
+                        </div>
+                        <!-- Back Face (Revealed) -->
+                        <div class="card-back absolute inset-0 backface-hidden rotate-y-180 rounded-2xl flex items-center justify-center glass-card-back text-2xl sm:text-4xl select-none">
+                            <span>${card.symbol}</span>
+                        </div>
+                    </div>
+                `;
+
+                cardEl.addEventListener('click', () => handleCardClick(card.id));
+                cardGrid.appendChild(cardEl);
+            });
+        }
+
+        // -------------------------------------------------------------
+        // 5. CARD INTERACTION & MATCHING LOGIC
+        // -------------------------------------------------------------
+        function handleCardClick(id) {
+            if (isBoardLocked) return;
+
+            const card = cards.find(c => c.id === id);
+            if (!card || card.isFlipped || card.isMatched) return;
+
+            // Start timer on first flip
+            if (!isTimerRunning) {
+                startTimer();
+            }
+
+            // Flip Card
+            flipCardUI(id, true);
+            card.isFlipped = true;
+            flippedCards.push(card);
+            audioFX.playFlip();
+
+            // Check match when 2 cards are flipped
+            if (flippedCards.length === 2) {
+                moves++;
+                updateStatsDisplay();
+                checkMatch();
+            }
+        }
+
+        function flipCardUI(id, flip) {
+            const cardEl = cardGrid.querySelector(`[data-id="${id}"] .card-inner`);
+            if (cardEl) {
+                if (flip) {
+                    cardEl.classList.add('is-flipped');
+                } else {
+                    cardEl.classList.remove('is-flipped');
+                }
+            }
+        }
+
+        function checkMatch() {
+            isBoardLocked = true;
+            const [card1, card2] = flippedCards;
+
+            if (card1.symbol === card2.symbol) {
+                // MATCH SUCCESS
+                setTimeout(() => {
+                    markMatchedUI(card1.id);
+                    markMatchedUI(card2.id);
+                    card1.isMatched = true;
+                    card2.isMatched = true;
+
+                    matchedPairs++;
+                    audioFX.playMatch();
+
+                    flippedCards = [];
+                    isBoardLocked = false;
+
+                    updateStatsDisplay();
+                    checkVictory();
+                }, 400);
+            } else {
+                // MISMATCH
+                setTimeout(() => {
+                    audioFX.playMismatch();
+                }, 300);
+
+                setTimeout(() => {
+                    flipCardUI(card1.id, false);
+                    flipCardUI(card2.id, false);
+                    card1.isFlipped = false;
+                    card2.isFlipped = false;
+
+                    flippedCards = [];
+                    isBoardLocked = false;
+                }, 900);
+            }
+        }
+
+        function markMatchedUI(id) {
+            const cardEl = cardGrid.querySelector(`[data-id="${id}"] .card-inner`);
+            if (cardEl) {
+                cardEl.classList.remove('is-flipped');
+                cardEl.classList.add('is-matched');
+            }
+        }
+
+        // -------------------------------------------------------------
+        // 6. HINT MECHANISM
+        // -------------------------------------------------------------
+        function triggerHint() {
+            if (hintsRemaining <= 0 || isBoardLocked) return;
+
+            // Find an unmatched pair
+            const unMatchedCards = cards.filter(c => !c.isMatched && !c.isFlipped);
+            if (unMatchedCards.length < 2) return;
+
+            // Pick first symbol available
+            const firstSymbol = unMatchedCards[0].symbol;
+            const pairToHighlight = cards.filter(c => c.symbol === firstSymbol && !c.isMatched);
+
+            if (pairToHighlight.length === 2) {
+                hintsRemaining--;
+                updateHintBadge();
+                audioFX.playHint();
+
+                pairToHighlight.forEach(card => {
+                    const cardInner = cardGrid.querySelector(`[data-id="${card.id}"] .card-inner`);
+                    if (cardInner) {
+                        cardInner.classList.add('is-hinted');
+                    }
+                });
+
+                setTimeout(() => {
+                    pairToHighlight.forEach(card => {
+                        const cardInner = cardGrid.querySelector(`[data-id="${card.id}"] .card-inner`);
+                        if (cardInner) {
+                            cardInner.classList.remove('is-hinted');
+                        }
+                    });
+                }, 1500);
+            }
+        }
+
+        function updateHintBadge() {
+            hintBadge.textContent = hintsRemaining;
+            btnHint.disabled = hintsRemaining <= 0;
+        }
+
+        // -------------------------------------------------------------
+        // 7. STATS & STAR RATING ENGINE
+        // -------------------------------------------------------------
+        function updateStatsDisplay() {
+            statMoves.textContent = moves;
+
+            const accuracy = moves > 0 ? Math.round((matchedPairs / moves) * 100) : 100;
+            statAccuracy.textContent = `${accuracy}%`;
+
+            // Calculate Stars based on difficulty min moves
+            const totalPairs = DIFFICULTY_CONFIG[currentDifficulty].pairs;
+            let currentStars = 3;
+
+            if (moves > totalPairs * 2.2) {
+                currentStars = 1;
+            } else if (moves > totalPairs * 1.5) {
+                currentStars = 2;
+            } else {
+                currentStars = 3;
+            }
+
+            updateStarsDisplay(currentStars);
+        }
+
+        function updateStarsDisplay(starCount) {
+            star1.className = starCount >= 1 ? 'text-amber-400 transition-all duration-300' : 'text-slate-700 transition-all duration-300';
+            star2.className = starCount >= 2 ? 'text-amber-400 transition-all duration-300' : 'text-slate-700 transition-all duration-300';
+            star3.className = starCount >= 3 ? 'text-amber-400 transition-all duration-300' : 'text-slate-700 transition-all duration-300';
+        }
+
+        // -------------------------------------------------------------
+        // 8. TIMER CONTROLLER
+        // -------------------------------------------------------------
+        function startTimer() {
+            if (isTimerRunning) return;
+            isTimerRunning = true;
+            timerInterval = setInterval(() => {
+                timerSeconds++;
+                statTime.textContent = formatTime(timerSeconds);
+            }, 1000);
+        }
+
+        function stopTimer() {
+            isTimerRunning = false;
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function formatTime(totalSecs) {
+            const mins = Math.floor(totalSecs / 60);
+            const secs = totalSecs % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // -------------------------------------------------------------
+        // 9. VICTORY & CONFETTI ENGINE
+        // -------------------------------------------------------------
+        function checkVictory() {
+            const totalPairs = DIFFICULTY_CONFIG[currentDifficulty].pairs;
+            if (matchedPairs === totalPairs) {
+                stopTimer();
+                audioFX.playVictory();
+
+                const isNewRecord = saveHighScores(currentDifficulty, timerSeconds, moves);
+
+                // Populate Victory Modal
+                vicTime.textContent = formatTime(timerSeconds);
+                vicMoves.textContent = moves;
+                const accuracy = Math.round((matchedPairs / moves) * 100);
+                vicAccuracy.textContent = `${accuracy}%`;
+
+                if (isNewRecord) {
+                    badgeHighscore.classList.remove('hidden');
+                } else {
+                    badgeHighscore.classList.add('hidden');
+                }
+
+                // Show Victory Modal with delay
+                setTimeout(() => {
+                    modalVictory.classList.remove('hidden');
+                    setTimeout(() => {
+                        victoryModalCard.classList.remove('scale-95', 'opacity-0');
+                        victoryModalCard.classList.add('scale-100', 'opacity-100');
+                    }, 50);
+                    runConfetti();
+                }, 600);
+            }
+        }
+
+        // Canvas Confetti Generator
+        function runConfetti() {
+            const canvas = document.getElementById('canvas-confetti');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const particles = [];
+            const colors = ['#6366f1', '#a855f7', '#ec4899', '#f59e0b', '#10b981', '#3b82f6'];
+
+            for (let i = 0; i < 120; i++) {
+                particles.push({
+                    x: canvas.width / 2,
+                    y: canvas.height / 2,
+                    vx: (Math.random() - 0.5) * 18,
+                    vy: (Math.random() - 0.7) * 18,
+                    size: Math.random() * 8 + 4,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    rotation: Math.random() * 360,
+                    rSpeed: (Math.random() - 0.5) * 10,
+                    opacity: 1
+                });
+            }
+
+            let animationFrame;
+            function render() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                let activeCount = 0;
+
+                particles.forEach(p => {
+                    if (p.opacity > 0) {
+                        activeCount++;
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        p.vy += 0.3; // Gravity
+                        p.opacity -= 0.008;
+                        p.rotation += p.rSpeed;
+
+                        ctx.save();
+                        ctx.translate(p.x, p.y);
+                        ctx.rotate((p.rotation * Math.PI) / 180);
+                        ctx.globalAlpha = Math.max(0, p.opacity);
+                        ctx.fillStyle = p.color;
+                        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+                        ctx.restore();
+                    }
+                });
+
+                if (activeCount > 0) {
+                    animationFrame = requestAnimationFrame(render);
+                }
+            }
+
+            render();
+        }
+
+        // -------------------------------------------------------------
+        // 10. LOCAL STORAGE HIGH SCORES MANAGER
+        // -------------------------------------------------------------
+        function getHighScores() {
+            const data = localStorage.getItem('mindmatch_highscores');
+            return data ? JSON.parse(data) : {
+                easy: { bestTime: null, bestMoves: null, gamesPlayed: 0 },
+                medium: { bestTime: null, bestMoves: null, gamesPlayed: 0 },
+                hard: { bestTime: null, bestMoves: null, gamesPlayed: 0 }
+            };
+        }
+
+        function saveHighScores(diff, time, moves) {
+            const scores = getHighScores();
+            let newRecord = false;
+
+            if (!scores[diff]) {
+                scores[diff] = { bestTime: null, bestMoves: null, gamesPlayed: 0 };
+            }
+
+            scores[diff].gamesPlayed = (scores[diff].gamesPlayed || 0) + 1;
+
+            if (scores[diff].bestTime === null || time < scores[diff].bestTime) {
+                scores[diff].bestTime = time;
+                newRecord = true;
+            }
+
+            if (scores[diff].bestMoves === null || moves < scores[diff].bestMoves) {
+                scores[diff].bestMoves = moves;
+                newRecord = true;
+            }
+
+            localStorage.setItem('mindmatch_highscores', JSON.stringify(scores));
+            return newRecord;
+        }
+
+        function renderStatsModal(diffKey) {
+            currentStatsTab = diffKey;
+            const scores = getHighScores()[diffKey];
+
+            // Tab Buttons UI
+            ['easy', 'medium', 'hard'].forEach(key => {
+                const tabBtn = document.getElementById(`tab-${key}`);
+                if (key === diffKey) {
+                    tabBtn.className = 'py-2 rounded-lg bg-indigo-600 text-white transition font-bold shadow';
+                } else {
+                    tabBtn.className = 'py-2 rounded-lg text-slate-400 hover:text-slate-200 transition';
+                }
+            });
+
+            if (scores && scores.bestTime !== null) {
+                bestTimeVal.textContent = formatTime(scores.bestTime);
+                bestMovesVal.textContent = scores.bestMoves;
+                bestGamesVal.textContent = scores.gamesPlayed || 1;
+            } else {
+                bestTimeVal.textContent = '--:--';
+                bestMovesVal.textContent = '--';
+                bestGamesVal.textContent = scores ? (scores.gamesPlayed || 0) : '0';
+            }
+        }
+
+        // -------------------------------------------------------------
+        // 11. EVENT LISTENERS & BINDINGS
+        // -------------------------------------------------------------
+        selectTheme.addEventListener('change', (e) => {
+            currentTheme = e.target.value;
+            initGame();
+        });
+
+        selectDifficulty.addEventListener('change', (e) => {
+            currentDifficulty = e.target.value;
+            initGame();
+        });
+
+        btnRestart.addEventListener('click', () => {
+            initGame();
+        });
+
+        btnHint.addEventListener('click', () => {
+            triggerHint();
+        });
+
+        // Mute / Unmute Sound
+        btnSound.addEventListener('click', () => {
+            audioFX.muted = !audioFX.muted;
+            if (audioFX.muted) {
+                iconSound.className = 'fa-solid fa-volume-xmark text-rose-400';
+            } else {
+                iconSound.className = 'fa-solid fa-volume-high text-slate-300';
+                audioFX.playFlip();
+            }
+        });
+
+        // Stats Leaderboard Modal
+        btnStats.addEventListener('click', () => {
+            renderStatsModal(currentDifficulty);
+            modalStats.classList.remove('hidden');
+        });
+        btnCloseStats.addEventListener('click', () => modalStats.classList.add('hidden'));
+        btnDoneStats.addEventListener('click', () => modalStats.classList.add('hidden'));
+
+        ['easy', 'medium', 'hard'].forEach(key => {
+            document.getElementById(`tab-${key}`).addEventListener('click', () => renderStatsModal(key));
+        });
+
+        btnClearStats.addEventListener('click', () => {
+            localStorage.removeItem('mindmatch_highscores');
+            renderStatsModal(currentStatsTab);
+        });
+
+        // Help Modal
+        btnHelp.addEventListener('click', () => modalHelp.classList.remove('hidden'));
+        btnCloseHelp.addEventListener('click', () => modalHelp.classList.add('hidden'));
+        btnDoneHelp.addEventListener('click', () => modalHelp.classList.add('hidden'));
+
+        // Victory Modal Buttons
+        btnVicReplay.addEventListener('click', () => {
+            victoryModalCard.classList.remove('scale-100', 'opacity-100');
+            victoryModalCard.classList.add('scale-95', 'opacity-0');
+            modalVictory.classList.add('hidden');
+            initGame();
+        });
+
+        btnVicClose.addEventListener('click', () => {
+            victoryModalCard.classList.remove('scale-100', 'opacity-100');
+            victoryModalCard.classList.add('scale-95', 'opacity-0');
+            modalVictory.classList.add('hidden');
+        });
+
+        // Keyboard Shortcut Controls
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'r' || e.key === 'R') {
+                initGame();
+            } else if (e.key === 'h' || e.key === 'H') {
+                triggerHint();
+            } else if (e.key === 'Escape') {
+                modalStats.classList.add('hidden');
+                modalHelp.classList.add('hidden');
+                modalVictory.classList.add('hidden');
+            }
+        });
+
+        // Initial Start
+        window.onload = () => {
+            initGame();
+        };
+
+    </script>
+</body>
+</html>
